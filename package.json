@@ -1,0 +1,12 @@
+{
+  "name": "vuejs-pwa-learning",
+  "version": "1.0.0",
+  "description": "A quick guide to make a progressive web app with vuejs and nuxt",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Tak Castel",
+  "license": "ISC",
+  "dependencies": {}
+}
