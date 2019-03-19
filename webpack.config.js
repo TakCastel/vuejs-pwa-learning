@@ -4,7 +4,15 @@ const VueLoaderPlugin = require('vue-loader/lib/plugin');
 
 // Export webpack conf
 module.exports = {
-  entry: './src/main.js',
+  mode: 'production',
+  entry: {
+    main: './src/main.js',
+    sw: './src/service-worker.js'
+  },
+  output: {
+    filename: '[name].js',
+    path: __dirname + '/dist'
+  },
   module: {
     // What to do with different type of files
     rules: [
