@@ -1,143 +1,168 @@
 # VueJS Progressive web app learning
 
-## Packages installation
+## Why hosting ?
 
-We won't be using the cdn all the time, now we're going to install VueJS in our application and build it with webpack compiler (version 4).
+According to Google recommendations, the webapp needs to be served over HTTPS in order to register the service worker. It is mandatory to make the webapp be registered as a progressive webapp and implements many options (add to homescreen, manifest, service worker, offline support)
 
-Now we are going to install Vue in our project and all its dependencies :
+## Production build 
 
-### The Javascript framework :
-```
-npm install vue
-```
+In order to test our application and register a service worker, we need to build our app.
 
-### Webpack & Babel :
+Let's add a new script in our package.json and set the mode to production in our webpack config :
 
-```
-npm install webpack webpack-cli webpack-dev-server html-webpack-plugin --save-dev
-```
+`"build": "webpack"`
 
-```
-npm install @babel/core @babel/preset-env babel-loader --save-dev
-``` 
-
-### SFC's support
-
-We need to tell webpack how to interprete the `template`, `script` and `style` parts of our single file in order to correctly mount our application.
-
-```
-npm install vue-template-compiler vue-loader  css-loader vue-style-loader --save-dev
+```js
+module.exports = {
+  mode: 'production'
+}
 ```
 
-Now the `package.json` should look like this :
+Then we prepare the files for our service-worker and allow webpack to bundle it. Specify the entry point and output as below :
+
+```js
+  entry: {
+    main: './src/main.js',
+    sw: './src/service-worker.js'
+  },
+  output: {
+    filename: '[name].js',
+    path: __dirname + '/dist'
+  }
+```
+This code will get the Javascript file and bundle them as `main.js` and `sw.js` and put them in the root of our dist folder.
+
+## Host with Firebase
+
+Install Firebase CLI :
+`npm install -g firebase-tools``
+
+Initialize application
+`firebase init`
+
+Chose only hosting and host it in a new project. Dont forget to login into Firebase and add the project :
+`firebase use --add`
+
+To deploy the application, build it with the script we previously added and deploy to firebase. 
+
+You can also create a custom script :
+`"deploy": "npm run build && firebase deploy"`
+
+## Register a service worker
+
+When the window is loaded, we can register our service worker. For this, we need to wite a new code inside our `main.js` :
+
+```js
+window.addEventListener('load', function() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker
+      .register('sw.js') // Target the dist file
+      .then(registration => {
+        console.log('Service worker installé ! 🎉')
+      })
+      .catch(error => {
+        console.error('Pas de service worker 😢', error)
+      })
+  } else {
+    // App running normally without SW
+  }
+})
+```
+
+## Add a manifest
+
+A manifest is usefull to control how your application behave when opened by the user. Background color, name, icon used by the OS, and many other parameters.
+
+Place the manifest.json in your app with an icon :
 
 ```json
-"dependencies": {
-  "vue": "^2.6.8"
-},
-"devDependencies": {
-  "@babel/core": "^7.3.4",
-  "@babel/preset-env": "^7.3.4",
-  "babel-loader": "^8.0.5",
-  "css-loader": "^2.1.1",
-  "html-webpack-plugin": "^3.2.0",
-  "vue-loader": "^15.7.0",
-  "vue-style-loader": "^4.1.2",
-  "vue-template-compiler": "^2.6.8",
-  "webpack": "^4.29.6",
-  "webpack-cli": "^3.2.3",
-  "webpack-dev-server": "^3.2.1"
-}
-```
-
-## Create the files
-Then we create our single file for our Vue application displaying a *Hello World* the same way we did before. Let's just add a bit of CSS to be sure the styles are imported correctly.
-
-`App.vue` 
-```html
-<template>
-  <div class="hello-world">
-    Hello {{ message }}
-  </div> 
-</template>
-
-<script>
-export default {
-  data: () => ({
-    message: 'world !'
-  })
-}
-</script>
-
-<style>
-  .hello-world {
-    padding: 16px;
-    color: red;
-  }
-</style>
-
-```
-`index.html`
-```html
-<!DOCTYPE html>
-<html>
-  <!-- Head tags -->
-  <head>
-    <meta charset="utf-8">
-    <title>Mon app</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-  </head>
-  
-  <!-- Body of our app -->
-  <body>
-    Voici mon application :
-    <div id="app" />
-  </body>
-</html>
-```
-`main.js`
-```js
-import Vue from 'vue';
-import App from './App.vue';
-
-new Vue({
-  el: '#app',
-  render: h => h(App),
-});
-```
-
-## Configure Webpack
-
-Copy the following webpack config in order to tell Webpack what to do with our application, then change the command line in the `package.json` file to launch the app.
-
-`webpack.config.js`
-```js
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const VueLoaderPlugin = require('vue-loader/lib/plugin');
-
-module.exports = {
-  entry: './src/main.js',
-  module: {
-    rules: [
-      { test: /\.js$/, use: 'babel-loader' },
-      { test: /\.vue$/, use: 'vue-loader' },
-      { test: /\.css$/, use: ['vue-style-loader', 'css-loader']},
-    ]
-  },
-  devServer: {
-    open: true,
-    hot: true
-  },
-  plugins: [
-    new HtmlWebpackPlugin({
-      template: './src/index.html',
-    }),
-    new VueLoaderPlugin(),
+{
+  "name": "Mon application",
+  "short_name": "App",
+  "theme_color": "#2196f3",
+  "background_color": "#2196f3",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
   ]
-};
+}
 ```
 
-New script line in our `package.json` (we can replace the *test* script that won't be used in this course) : 
+## Fetch the manifest in service worker
+
+According to the [official documentation](https://developers.google.com/web/ilt/pwa/working-with-the-fetch-api), we need to fetch the manifest.json in order to launch the install to homescreen button.
+
+In your main.js, this function is called when the service worker is registered :
+
+```js
+function fetchManifest(pathToResource) {
+  fetch(pathToResource)
+    .then(function(response) {
+      console.log('Mise en cache du manifest.json 📜')
+    })
+    .catch(function(error) {
+      console.log('Woops ! 🚫 Une erreur est survenue :', error);
+    });
+}
 ```
-"dev": "webpack-dev-server --mode development"
+
+Then, in the service worker, we have to cache the file using the cache API. For now we will just copy/paste what we can read in the documentation :
+
+```js
+self.addEventListener('fetch', function(event) {
+  event.respondWith(
+    // Try the cache
+    caches.match(event.request).then(function(response) {
+      // Fall back to network
+      return response || fetch(event.request);
+    }).catch(function() {
+      // If both fail, show a generic fallback:
+      return caches.match('/offline.html');
+      // However, in reality you'd have many different
+      // fallbacks, depending on URL & headers.
+      // Eg, a fallback silhouette image for avatars.
+    })
+  );
+});
+``` 
+
+## Clear cache when deploying to firebase
+
+During your test, Firebase may use older versions of your app, if you need to clear the cache of your application when deploying, you can add this in your firebase.json : 
+
+```json
+"hosting": {
+  "headers": [
+    { 
+      "source":"/sw.js", 
+      "headers": [
+        {
+          "key": "Cache-Control", 
+          "value": "no-cache"
+        }
+      ] 
+    }
+  ]
+}
 ```
+
+## Extra script for our test
+
+Webpack won't build the manifest and icon files we put in the static folder. For now, we can use these scripts in our package.json to build it and allow the code to access the new files :
+
+```json
+  "manifest": "cp static/manifest.json dist/manifest.json",
+  "icon": "cp static/icon.png dist/icon.png",
+  "build": "webpack && npm run manifest && npm run icon"
+```
+
+## Run audit in browser
+
+The app should now be installable and fully reliable ! :)
