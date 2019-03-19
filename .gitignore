@@ -3,3 +3,9 @@ node_modules
 
 # Mac OS
 .DS_Store
+
+# Firebase logs
+.firebase
+
+# Built files
+dist
