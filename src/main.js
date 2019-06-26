@@ -12,6 +12,9 @@ window.addEventListener('load', function() {
       .register('sw.js')
       .then(registration => {
         console.log('Service worker installé ! 🎉')
+
+        // Fetch the manifest.json
+        fetchManifest('/manifest.json')
       })
       .catch(error => {
         console.error('Pas de service worker 😢', error)
@@ -20,3 +23,13 @@ window.addEventListener('load', function() {
     // App running normally without SW
   }
 })
+
+function fetchManifest(pathToResource) {
+  fetch(pathToResource)
+    .then(function(response) {
+      console.log('Mise en cache du manifest.json 📜')
+    })
+    .catch(function(error) {
+      console.log('Woops ! 🚫 Une erreur est survenue :', error);
+    });
+}
